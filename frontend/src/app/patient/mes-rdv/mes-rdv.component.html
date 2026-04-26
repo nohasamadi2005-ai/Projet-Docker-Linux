@@ -1,0 +1,8 @@
+<div class="container">
+  <h2>Mes Rendez-vous</h2>
+  <div *ngFor="let rdv of rdvs" class="rdv-card">
+    <span>{{ rdv.creneau.date_creneau }} — {{ rdv.creneau.heure_debut }}</span>
+    <span class="statut">{{ rdv.statut }}</span>
+  </div>
+  <p *ngIf="rdvs.length === 0">Aucun rendez-vous.</p>
+</div>
