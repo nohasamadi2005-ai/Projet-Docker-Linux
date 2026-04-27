@@ -1,0 +1,9 @@
+<div class="container">
+  <h2>Créneaux disponibles</h2>
+  <p *ngIf="message">{{ message }}</p>
+  <div *ngFor="let slot of slots" class="slot-card">
+    <span>{{ slot.date_creneau }} — {{ slot.heure_debut }} à {{ slot.heure_fin }}</span>
+    <button (click)="reserver(slot.id)">Réserver</button>
+  </div>
+  <p *ngIf="slots.length === 0">Aucun créneau disponible.</p>
+</div>
