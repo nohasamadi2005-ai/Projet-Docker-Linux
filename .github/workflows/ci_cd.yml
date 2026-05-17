@@ -53,13 +53,35 @@ jobs:
     needs: laravel-tests
     if: github.ref == 'refs/heads/dev'
     steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1.0.0
-        with:
-          host: ${{ secrets.AWS_HOST }}
-          username: ${{ secrets.AWS_USER }}
-          key: ${{ secrets.AWS_SSH_KEY }}
-          script: |
-            cd /app
-            git pull origin dev
-            docker-compose up -d --build
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.AWS_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.AWS_HOST }} >> ~/.ssh/known_hosts
+          chmod 644 ~/.ssh/known_hosts
+
+      - name: Test SSH Connection
+        run: |
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} \
+            "echo SSH connection successful"
+
+      - name: Deploy to AWS
+        run: |
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'ENDSSH'
+              cd /app
+              git pull origin dev
+              docker-compose down
+              docker-compose up -d --build
+              docker-compose exec -T backend php artisan migrate --force
+              docker-compose exec -T backend php artisan config:clear
+              docker-compose exec -T backend php artisan cache:clear
+            ENDSSH
