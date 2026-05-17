@@ -73,4 +73,4 @@ jobs:
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=30 \
             $SSH_USER@$SSH_HOST \
-            "cd /app && git pull origin dev && docker-compose up -d --build"
+            "cd /app && git pull origin dev && docker-compose down && docker-compose up -d --build --force-recreate"
