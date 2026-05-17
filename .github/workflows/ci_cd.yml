@@ -56,32 +56,21 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup SSH Key
+        env:
+          SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.AWS_SSH_KEY }}" > ~/.ssh/id_rsa
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -H ${{ secrets.AWS_HOST }} >> ~/.ssh/known_hosts
-          chmod 644 ~/.ssh/known_hosts
-
-      - name: Test SSH Connection
-        run: |
-          ssh -i ~/.ssh/id_rsa \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=30 \
-            ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} \
-            "echo SSH connection successful"
 
       - name: Deploy to AWS
+        env:
+          SSH_HOST: ${{ secrets.AWS_HOST }}
+          SSH_USER: ${{ secrets.AWS_USER }}
         run: |
           ssh -i ~/.ssh/id_rsa \
             -o StrictHostKeyChecking=no \
             -o ConnectTimeout=30 \
-            ${{ secrets.AWS_USER }}@${{ secrets.AWS_HOST }} << 'ENDSSH'
-              cd /app
-              git pull origin dev
-              docker-compose down
-              docker-compose up -d --build
-              docker-compose exec -T backend php artisan migrate --force
-              docker-compose exec -T backend php artisan config:clear
-              docker-compose exec -T backend php artisan cache:clear
-            ENDSSH
+            $SSH_USER@$SSH_HOST \
+            "cd /app && git pull origin dev && docker-compose up -d --build"
