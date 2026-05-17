@@ -1,4 +1,4 @@
-name: CI Laravel Medical App
+name: CI/CD Laravel Medical App
 
 on:
   push:
@@ -10,7 +10,6 @@ jobs:
   laravel-tests:
     name: Laravel Backend Tests
     runs-on: ubuntu-latest
-
     services:
       mysql:
         image: mysql:8.0
@@ -19,8 +18,11 @@ jobs:
           MYSQL_DATABASE: medcine_db_test
         ports:
           - 3306:3306
-        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
     steps:
       - uses: actions/checkout@v4
 
@@ -44,3 +46,20 @@ jobs:
       - name: Run Tests
         working-directory: backend
         run: php artisan test
+
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: laravel-tests
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.AWS_HOST }}
+          username: ${{ secrets.AWS_USER }}
+          key: ${{ secrets.AWS_SSH_KEY }}
+          script: |
+            cd /app
+            git pull origin dev
+            docker-compose up -d --build
