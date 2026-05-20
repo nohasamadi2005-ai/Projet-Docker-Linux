@@ -48,31 +48,60 @@
 <div class="container">
     <h2>Gestion des créneaux</h2>
 
+    {{-- Message succès --}}
     @if(session('success'))
-        <div class="alert-success">{{ session('success') }}</div>
+        <div class="alert-success">
+            {{ session('success') }}
+        </div>
     @endif
+
+    {{-- Message erreur personnalisé --}}
+    @if(session('error'))
+        <div class="alert-danger">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    {{-- Erreurs validation Laravel --}}
     @if($errors->any())
-        <div class="alert-danger">{{ $errors->first() }}</div>
+        <div class="alert-danger">
+            {{ $errors->first() }}
+        </div>
     @endif
 
     <div class="add-form">
         <h3>Ajouter un créneau</h3>
+
         <form method="POST" action="/medecin/creneaux">
             @csrf
+
             <div class="form-row">
+
                 <div class="form-group">
                     <label>Date</label>
-                    <input type="date" name="date_creneau" required/>
+                    <input type="date"
+                           name="date_creneau"
+                           required />
                 </div>
+
                 <div class="form-group">
                     <label>Heure début</label>
-                    <input type="time" name="heure_debut" required/>
+                    <input type="time"
+                           name="heure_debut"
+                           required />
                 </div>
+
                 <div class="form-group">
                     <label>Heure fin</label>
-                    <input type="time" name="heure_fin" required/>
+                    <input type="time"
+                           name="heure_fin"
+                           required />
                 </div>
-                <button type="submit" class="btn-add">+ Ajouter</button>
+
+                <button type="submit" class="btn-add">
+                    + Ajouter
+                </button>
+
             </div>
         </form>
     </div>
@@ -87,37 +116,96 @@
                 <th>Action</th>
             </tr>
         </thead>
+
         <tbody>
-            @forelse($slots as $slot)
+
+        @forelse($slots as $slot)
+
             <tr>
-                <td>{{ \Carbon\Carbon::parse($slot->date_creneau)->format('d/m/Y') }}</td>
-                <td>{{ $slot->heure_debut }}</td>
-                <td>{{ $slot->heure_fin }}</td>
+
+                <td>
+                    {{ \Carbon\Carbon::parse($slot->date_creneau)->format('d/m/Y') }}
+                </td>
+
+                <td>
+                    {{ $slot->heure_debut }}
+                </td>
+
+                <td>
+                    {{ $slot->heure_fin }}
+                </td>
+
                 <td>
                     @if($slot->disponible)
-                        <span class="badge-disponible">Disponible</span>
+                        <span class="badge-disponible">
+                            Disponible
+                        </span>
                     @else
-                        <span class="badge-reserve">Réservé</span>
+                        <span class="badge-reserve">
+                            Réservé
+                        </span>
                     @endif
                 </td>
+
                 <td>
-                    <form method="POST" action="/medecin/creneaux/{{ $slot->id }}" style="display:inline">
+
+                    {{-- Modifier --}}
+                    @if($slot->disponible)
+
+                        <a href="/medecin/creneaux/{{ $slot->id }}/edit"
+                           style="
+                                padding:.25rem .6rem;
+                                background:#4299e1;
+                                color:white;
+                                border-radius:4px;
+                                font-size:11px;
+                                text-decoration:none;
+                                margin-right:.3rem;
+                           ">
+                            Modifier
+                        </a>
+
+                    @endif
+
+                    {{-- Supprimer --}}
+                    <form method="POST"
+                          action="/medecin/creneaux/{{ $slot->id }}"
+                          style="display:inline">
+
                         @csrf
                         @method('DELETE')
-                        <button type="submit" class="btn-del"
+
+                        <button type="submit"
+                                class="btn-del"
                                 onclick="return confirm('Supprimer ce créneau ?')">
+
                             Supprimer
+
                         </button>
+
                     </form>
+
+                </td>
+
+            </tr>
+
+        @empty
+
+            <tr>
+                <td colspan="5"
+                    style="
+                        text-align:center;
+                        color:#718096;
+                        padding:2rem
+                    ">
+
+                    Aucun créneau créé pour le moment.
+
                 </td>
             </tr>
-            @empty
-                <tr>
-                    <td colspan="5" style="text-align:center;color:#718096;padding:2rem">
-                        Aucun créneau créé pour le moment.
-                    </td>
-                </tr>
-            @endforelse
+
+        @endforelse
+
         </tbody>
     </table>
 </div>
