@@ -1,0 +1,76 @@
+name: CI/CD Laravel Medical App
+
+on:
+  push:
+    branches: ["dev", "main"]
+  pull_request:
+    branches: ["dev", "main"]
+
+jobs:
+  laravel-tests:
+    name: Laravel Backend Tests
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: medcine_db_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.3"
+          extensions: mbstring, dom, curl, pdo_mysql
+          tools: composer:v2
+
+      - name: Install Dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --ignore-platform-reqs
+
+      - name: Prepare Laravel
+        working-directory: backend
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+
+      - name: Run Tests
+        working-directory: backend
+        run: php artisan test
+
+  deploy:
+    name: Deploy to AWS
+    runs-on: ubuntu-latest
+    needs: laravel-tests
+    if: github.ref == 'refs/heads/dev'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH Key
+        env:
+          SSH_KEY: ${{ secrets.AWS_SSH_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          echo "StrictHostKeyChecking no" >> ~/.ssh/config
+
+      - name: Deploy to AWS
+        env:
+          SSH_HOST: ${{ secrets.AWS_HOST }}
+          SSH_USER: ${{ secrets.AWS_USER }}
+        run: |
+          ssh -i ~/.ssh/id_rsa \
+            -o StrictHostKeyChecking=no \
+            -o ConnectTimeout=30 \
+            $SSH_USER@$SSH_HOST \
+            "cd /app && git pull origin dev && docker-compose down && docker-compose up -d --build --force-recreate"
